@@ -53,7 +53,6 @@ func GetRooms(collection *mongo.Collection, ctx context.Context) []*ChatRoom {
 	if err := cur.All(ctx, &roomsCollection); err != nil {
 		panic(err)
 	}
-	fmt.Println(roomsCollection)
 	return roomsCollection
 }
 

@@ -1,56 +1,20 @@
 package models
 
 import (
-	"context"
-	"errors"
-	"fmt"
-	"log"
-
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
+	"time"
 )
 
 type User struct {
-	Id             string `json:"id" bson:"id,omitempty" required:"true"`
-	FirstName      string
-	LastName       string
-	Username       string
-	Password       string
-	LastConnection string
+	Id              string `json:"id" bson:"_id,omitempty" required:"true"`
+	FirstName       string `required:"true" validate:"max=32, nonzero"`
+	LastName        string `required:"true" validate:"max=32, nonzero"`
+	Username        string `required:"true" validate:"max=20, nonzero"`
+	Password        string `validate:"min=8"`
+	AdminPermission bool   `json:"admin_permission"`
+	LastConnection  time.Time
 }
 
-var (
-	users  []*User
-	nextId = 1
-)
-
-func GetUserById(id string, collection *mongo.Collection, ctx context.Context) (User, error) {
-	user := User{}
-	fmt.Println(id)
-	objectId, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		log.Println("Invalid id")
-	}
-
-	err = collection.FindOne(ctx, bson.D{{"id", objectId}}).Decode(&user)
-
-	if err != nil {
-		log.Println("User not found")
-		return user, errors.New("User not found")
-	}
-
-	return user, nil
-}
-
-func AddUser(u User, collection *mongo.Collection, ctx context.Context) (User, error) {
-	nextId++
-
-	res, insertErr := collection.InsertOne(ctx, u)
-	if insertErr != nil {
-		log.Fatal(insertErr)
-	}
-	fmt.Println(res)
-
-	return u, nil
+type AuthenthicationRequest struct {
+	Username string `json:"username" bson:"username" validate:"max=20, nonzero"`
+	Password string `validate:"min=8"`
 }

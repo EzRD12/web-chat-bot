@@ -9,10 +9,13 @@ import (
 func RegisterController() {
 	uc := newUserController()
 	rm := newRoomController()
+	ac := newAuthController()
 
 	http.Handle("/users", *uc)
 	http.Handle("/users/", *uc)
 	http.Handle("/rooms", *rm)
+	http.Handle("/auth", *ac)
+	http.Handle("/auth/", *ac)
 	http.Handle("/rooms/", *rm)
 }
 

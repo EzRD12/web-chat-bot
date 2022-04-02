@@ -7,6 +7,7 @@ require (
 	github.com/go-kit/log v0.2.0 // indirect
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
+	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/klauspost/compress v1.15.1 // indirect
 	github.com/philippseith/signalr v0.5.2 // indirect
@@ -22,5 +23,6 @@ require (
 	golang.org/x/crypto v0.0.0-20201216223049-8b5274cf687f // indirect
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e // indirect
 	golang.org/x/text v0.3.7 // indirect
+	gopkg.in/validator.v2 v2.0.0-20210331031555-b37d688a7fb0 // indirect
 	nhooyr.io/websocket v1.8.7 // indirect
 )

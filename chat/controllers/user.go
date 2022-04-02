@@ -3,14 +3,16 @@ package controllers
 import (
 	"context"
 	"encoding/json"
-	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"regexp"
-	"strings"
 	"time"
 
+	"github.com/ezrod12/chat/helpers"
 	"github.com/ezrod12/chat/models"
+	"github.com/ezrod12/chat/services"
+	"gopkg.in/validator.v2"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -23,6 +25,33 @@ type userController struct {
 }
 
 func (uc userController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path == "/users" {
+		switch r.Method {
+		case http.MethodPost:
+			uc.post(w, r)
+		default:
+			w.WriteHeader(http.StatusNotImplemented)
+		}
+	} else {
+		if helpers.IsAuthorized(r, w) {
+			return
+		}
+
+		matches := uc.userIdPattern.FindStringSubmatch(r.URL.Path)
+		if len(matches) == 0 {
+			w.WriteHeader(http.StatusNotFound)
+		}
+		id := matches[1]
+
+		fmt.Println(id)
+
+		switch r.Method {
+		case http.MethodGet:
+			fmt.Println(id)
+		default:
+			w.WriteHeader(http.StatusNotImplemented)
+		}
+	}
 }
 
 func newUserController() *userController {
@@ -58,7 +87,7 @@ func (uc *userController) post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err = models.AddUser(u, uc.collection, uc.context)
+	u, err = services.AddUser(u, uc.collection, uc.context)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error()))
@@ -80,12 +109,8 @@ func (uc *userController) parseRequest(r *http.Request) (models.User, error) {
 }
 
 func validateUserEntity(user models.User, createMode bool) error {
-	if strings.Trim(user.FirstName, " ") == "" {
-		return errors.New("property firstname must contain a valid string value")
-	}
-
-	if strings.Trim(user.LastName, " ") == "" {
-		return errors.New("property lastname must contain a valid string value")
+	if errs := validator.Validate(user); errs != nil {
+		return errs
 	}
 
 	return nil

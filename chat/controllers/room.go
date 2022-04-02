@@ -11,7 +11,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ezrod12/chat/helpers"
 	"github.com/ezrod12/chat/models"
+	"github.com/ezrod12/chat/services"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -27,6 +29,10 @@ type roomController struct {
 }
 
 func (uc roomController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if helpers.IsAuthorized(r, w) {
+		return
+	}
+
 	if r.URL.Path == "/rooms" {
 		switch r.Method {
 		case http.MethodGet:
@@ -133,7 +139,7 @@ func (mc *roomController) validateMessageEntity(message models.Message, createMo
 		return errors.New("property firstname must contain a valid string value")
 	}
 
-	_, err := models.GetUserById(message.SenderUserId, mc.userCollection, mc.context)
+	_, err := services.GetUserById(message.SenderUserId, mc.userCollection, mc.context)
 
 	if err != nil {
 		return err
