@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/ezrod12/chat/models"
@@ -21,6 +22,7 @@ type Claims struct {
 func AuthUser(response http.ResponseWriter, authRequest models.AuthenthicationRequest, context context.Context, collection *mongo.Collection) {
 	response.Header().Set("Content-Type", "application/json")
 	var dbUser models.User
+	authRequest.Username = strings.ToLower(authRequest.Username)
 
 	dbUser, err := services.GetUserByUsername(authRequest.Username, collection, context)
 

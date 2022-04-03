@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -25,6 +26,7 @@ type userController struct {
 }
 
 func (uc userController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	if r.URL.Path == "/users" {
 		switch r.Method {
 		case http.MethodPost:
@@ -76,21 +78,21 @@ func (uc *userController) post(w http.ResponseWriter, r *http.Request) {
 	u, err := uc.parseRequest(r)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		w.Write([]byte("{\"error\":\"" + err.Error() + "\"}"))
 		return
 	}
 
-	err = validateUserEntity(u, true)
+	err = uc.validateUserEntity(u, true)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
+		w.Write([]byte("{\"error\":\"" + err.Error() + "\"}"))
 		return
 	}
 
 	u, err = services.AddUser(u, uc.collection, uc.context)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		w.Write([]byte("{\"error\":\"" + err.Error() + "\"}"))
 	}
 
 	encodeResponseAsJson(u, w)
@@ -108,9 +110,15 @@ func (uc *userController) parseRequest(r *http.Request) (models.User, error) {
 	return u, nil
 }
 
-func validateUserEntity(user models.User, createMode bool) error {
+func (uc userController) validateUserEntity(user models.User, createMode bool) error {
 	if errs := validator.Validate(user); errs != nil {
 		return errs
+	}
+
+	_, err := services.GetUserByUsername(user.Username, uc.collection, uc.context)
+
+	if err == nil {
+		return errors.New("user with this username already exists")
 	}
 
 	return nil

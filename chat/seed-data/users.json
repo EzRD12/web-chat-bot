@@ -1,0 +1,7 @@
+{
+    "FirstName": "Admin",
+    "LastName": "Administrator",
+    "Username": "admin",
+    "Password": "password",
+    "AdminPermission": true
+}

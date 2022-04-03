@@ -10,7 +10,7 @@ type User struct {
 	LastName        string `required:"true" validate:"max=32, nonzero"`
 	Username        string `required:"true" validate:"max=20, nonzero"`
 	Password        string `validate:"min=8"`
-	AdminPermission bool   `json:"admin_permission"`
+	AdminPermission bool   `bson:"admin_permission"`
 	LastConnection  time.Time
 }
 

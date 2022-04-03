@@ -4,12 +4,17 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+
+	"github.com/ezrod12/chat/startup"
 )
 
 func RegisterController() {
 	uc := newUserController()
 	rm := newRoomController()
 	ac := newAuthController()
+	st := startup.InitStartup()
+
+	st.SaveSeedData()
 
 	http.Handle("/users", *uc)
 	http.Handle("/users/", *uc)

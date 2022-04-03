@@ -21,6 +21,7 @@ import (
 
 type roomController struct {
 	roomIdPattern           *regexp.Regexp
+	roomMessagesPattern     *regexp.Regexp
 	context                 context.Context
 	collection              *mongo.Collection
 	userCollection          *mongo.Collection
@@ -29,6 +30,7 @@ type roomController struct {
 }
 
 func (uc roomController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	if helpers.IsAuthorized(r, w) {
 		return
 	}
@@ -44,6 +46,7 @@ func (uc roomController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		matches := uc.roomIdPattern.FindStringSubmatch(r.URL.Path)
+		roomMessages := uc.roomMessagesPattern.FindStringSubmatch(r.URL.Path)
 		if len(matches) == 0 {
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -53,7 +56,11 @@ func (uc roomController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		switch r.Method {
 		case http.MethodGet:
-			uc.get(id, w)
+			if len(roomMessages) == 0 {
+				uc.get(id, w)
+			} else {
+
+			}
 		default:
 			w.WriteHeader(http.StatusNotImplemented)
 		}
@@ -61,11 +68,21 @@ func (uc roomController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (uc *roomController) getAll(w http.ResponseWriter, r *http.Request) {
-	encodeResponseAsJson(models.GetRooms(uc.collection, uc.context), w)
+	encodeResponseAsJson(services.GetRooms(uc.collection, uc.context), w)
 }
 
 func (uc *roomController) get(id string, w http.ResponseWriter) {
-	u, err := models.GetRoomMessages(id, uc.collection, uc.context)
+	u, err := services.GetChatRoomDetailById(id, uc.collection, uc.context)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	encodeResponseAsJson(u, w)
+}
+
+func (uc *roomController) getRoomMessages(id string, w http.ResponseWriter) {
+	u, err := services.GetRoomMessages(id, uc.collection, uc.context)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -89,10 +106,11 @@ func newRoomController() *roomController {
 	chatRoomCollection := client.Database("chat-bot").Collection("rooms")
 
 	return &roomController{
-		roomIdPattern:      regexp.MustCompile(`/rooms/([A-Za-z0-9\-]+)/?`),
-		collection:         messageCollection,
-		userCollection:     userCollection,
-		chatRoomCollection: chatRoomCollection,
+		roomIdPattern:       regexp.MustCompile(`/rooms/([A-Za-z0-9\-]+)/?`),
+		roomMessagesPattern: regexp.MustCompile(`/rooms/([A-Za-z0-9\-]+)/messages?`),
+		collection:          messageCollection,
+		userCollection:      userCollection,
+		chatRoomCollection:  chatRoomCollection,
 	}
 }
 
@@ -100,21 +118,21 @@ func (uc *roomController) post(w http.ResponseWriter, r *http.Request) {
 	u, err := uc.parseRequest(r)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		w.Write([]byte("{\"error\":\"" + err.Error() + "\"}"))
 		return
 	}
 
 	err = uc.validateMessageEntity(u, true)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
+		w.Write([]byte("{\"error\":\"" + err.Error() + "\"}"))
 		return
 	}
 
-	u, err = models.AddMessage(u, uc.collection, uc.context)
+	u, err = services.AddMessage(u, uc.collection, uc.context)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		w.Write([]byte("{\"error\":\"" + err.Error() + "\"}"))
 	}
 
 	encodeResponseAsJson(u, w)
@@ -145,7 +163,7 @@ func (mc *roomController) validateMessageEntity(message models.Message, createMo
 		return err
 	}
 
-	_, err = models.GetChatRoomById(message.ChatRoomId, mc.chatRoomCollection, mc.context)
+	_, err = services.GetChatRoomDetailById(message.ChatRoomId, mc.chatRoomCollection, mc.context)
 
 	if err != nil {
 		return err
