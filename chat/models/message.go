@@ -19,11 +19,6 @@ type StockRequest struct {
 
 type StockResponse struct {
 	Code   string  `json:"code"`
-	RoomId string  `json:"roomId"`
-	Open   float64 `json:"open"`
-	Date   string  `json:"open"`
-	High   float64 `json:"high"`
-	Low    float64 `json:"low"`
 	Close  float64 `json:"close"`
-	Volume int64   `json:"volume"`
+	RoomId string  `json:"roomId"`
 }

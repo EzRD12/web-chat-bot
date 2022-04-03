@@ -27,9 +27,8 @@ func RegisterController() {
 			var response models.StockResponse
 			json.Unmarshal(d.Body, &response)
 
-			var message string = fmt.Sprintf("code: %s - date: %s \n open: %f, high: %f, low: %f, close: %f \n volume: %d", response.Code, response.Date,
-				response.Open, response.High, response.Low, response.Close, response.Volume)
-			var messageRequest models.Message = models.Message{Value: message, ChatRoomId: response.RoomId, SenderUserId: "system"}
+			var message string = fmt.Sprintf("%s quote is: $%f \n per share", response.Code, response.Close)
+			var messageRequest models.Message = models.Message{Value: message, ChatRoomId: response.RoomId, SenderUserId: "bot"}
 
 			services.AddMessage(messageRequest, rm.collection, rm.context)
 		}
