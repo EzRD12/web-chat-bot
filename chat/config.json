@@ -1,6 +1,11 @@
 {
     "rabbitMQ": {
-
+        "user": "guest",
+        "pass": "guest",
+        "host": "localhost",
+        "port": 5672,
+        "getStockQueue": "chat_bot_get_stock_queue",
+        "sendStockQueue"  : "chat_stock_receiver_queue"
     },
     "appConfig": {
         "secretKey": "f30d2dff-06ab-4eb5-a30f-1d2d70229dd6"

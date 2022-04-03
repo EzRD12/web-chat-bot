@@ -10,12 +10,12 @@ var Configuration Config
 
 type Config struct {
 	RabbitMQ struct {
-		User        string `json:"user"`
-		Pass        string `json:"pass"`
-		Host        string `json:"host"`
-		Port        string `json:"port"`
-		ClientQueue string `json:"clientQueue"`
-		StooqQueue  string `json:"stooqQueue"`
+		User           string `json:"user"`
+		Pass           string `json:"pass"`
+		Host           string `json:"host"`
+		Port           string `json:"port"`
+		GetStockQueue  string `json:"getStockQueue"`
+		SendStockQueue string `json:"sendStockQueue"`
 	}
 
 	AppConfig struct {

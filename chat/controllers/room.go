@@ -13,6 +13,7 @@ import (
 
 	"github.com/ezrod12/chat/auth"
 	"github.com/ezrod12/chat/helpers"
+	"github.com/ezrod12/chat/messager"
 	"github.com/ezrod12/chat/models"
 	"github.com/ezrod12/chat/services"
 	"gopkg.in/validator.v2"
@@ -24,6 +25,7 @@ import (
 type roomController struct {
 	roomIdPattern           *regexp.Regexp
 	roomMessagesPattern     *regexp.Regexp
+	stockMessagePattern     *regexp.Regexp
 	context                 context.Context
 	collection              *mongo.Collection
 	userCollection          *mongo.Collection
@@ -117,6 +119,7 @@ func newRoomController() *roomController {
 	return &roomController{
 		roomIdPattern:           regexp.MustCompile(`/rooms/([A-Za-z0-9\-]+)/?`),
 		roomMessagesPattern:     regexp.MustCompile(`/rooms/([A-Za-z0-9\-]+)/messages?`),
+		stockMessagePattern:     regexp.MustCompile(`/stock=([A-Za-z0-9\-]+)`),
 		collection:              messageCollection,
 		userCollection:          userCollection,
 		chatRoomCollection:      chatRoomCollection,
@@ -158,7 +161,7 @@ func (uc *roomController) createRoom(w http.ResponseWriter, r *http.Request) {
 }
 
 func (uc *roomController) createMessage(w http.ResponseWriter, r *http.Request) {
-	u, err := uc.parseRequest(r)
+	msg, err := uc.parseRequest(r)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("{\"error\":\"" + err.Error() + "\"}"))
@@ -167,23 +170,32 @@ func (uc *roomController) createMessage(w http.ResponseWriter, r *http.Request) 
 
 	claims, _ := auth.ExtractClaims(r.Header.Get("Authorization"))
 	value := claims["userId"]
-	u.SenderUserId = value.(string)
-	u.Created = time.Now()
+	msg.SenderUserId = value.(string)
+	msg.Created = time.Now()
 
-	err = uc.validateMessageEntity(u, true)
+	err = uc.validateMessageEntity(msg, true)
+
+	stockMessageMatches := uc.stockMessagePattern.FindStringSubmatch(msg.Value)
+
+	if len(stockMessageMatches) > 0 {
+		var code string = stockMessageMatches[1]
+		var stockRequest models.StockRequest = models.StockRequest{Code: code, RoomId: msg.ChatRoomId}
+		messager.SendMessage(&stockRequest)
+	}
+
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("{\"error\":\"" + err.Error() + "\"}"))
 		return
 	}
 
-	u, err = services.AddMessage(u, uc.collection, uc.context)
+	msg, err = services.AddMessage(msg, uc.collection, uc.context)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("{\"error\":\"" + err.Error() + "\"}"))
 	}
 
-	encodeResponseAsJson(u, w)
+	encodeResponseAsJson(msg, w)
 }
 
 func (uc *roomController) parseRequest(r *http.Request) (models.Message, error) {
