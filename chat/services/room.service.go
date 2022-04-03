@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/ezrod12/chat/models"
 	"go.mongodb.org/mongo-driver/bson"
@@ -19,7 +20,7 @@ func GetChatRoomDetailById(id string, collection *mongo.Collection, ctx context.
 		log.Println("Invalid id")
 	}
 
-	err = collection.FindOne(ctx, bson.D{{"id", objectId}}).Decode(&chat)
+	err = collection.FindOne(ctx, bson.D{{"_id", objectId}}).Decode(&chat)
 
 	if err != nil {
 		log.Println("Chat room not found")
@@ -57,7 +58,53 @@ func GetRooms(collection *mongo.Collection, ctx context.Context) []*models.ChatR
 	if err := cur.All(ctx, &roomsCollection); err != nil {
 		panic(err)
 	}
+
 	return roomsCollection
+}
+
+func GetRoomsByIds(roomsId []string, collection *mongo.Collection, ctx context.Context) []*models.ChatRoom {
+	oids := make([]primitive.ObjectID, len(roomsId))
+	for i := range roomsId {
+		oids[i], _ = primitive.ObjectIDFromHex(roomsId[i])
+	}
+
+	query := bson.M{"_id": bson.M{"$in": oids}}
+	cur, currErr := collection.Find(ctx, query)
+
+	if currErr != nil {
+		panic(currErr)
+	}
+	defer cur.Close(ctx)
+
+	var roomsCollection []*models.ChatRoom
+	if err := cur.All(ctx, &roomsCollection); err != nil {
+		panic(err)
+	}
+
+	return roomsCollection
+}
+
+func GetRoomsIdAssignedToUser(userId string, collection *mongo.Collection, ctx context.Context) []string {
+	fmt.Println(userId)
+	cur, currErr := collection.Find(ctx, bson.M{"userid": userId})
+
+	if currErr != nil {
+		log.Fatal(currErr)
+		fmt.Println(currErr)
+	}
+	defer cur.Close(ctx)
+
+	var roomsUserCollection []*models.ChatRoomUsers
+	if err := cur.All(ctx, &roomsUserCollection); err != nil {
+		panic(err)
+	}
+
+	roomsId := make([]string, len(roomsUserCollection))
+	for i, roomUser := range roomsUserCollection {
+		roomsId[i] = roomUser.RoomId
+	}
+
+	return roomsId
 }
 
 func GetRoomsByName(name string, collection *mongo.Collection, ctx context.Context) (models.ChatRoom, error) {
@@ -84,21 +131,25 @@ func DoesExistsUserInRoom(roomId, userId string, collection *mongo.Collection, c
 }
 
 func AddRoom(u models.ChatRoom, collection *mongo.Collection, ctx context.Context) (models.ChatRoom, error) {
+	u.Created = time.Now()
 	res, insertErr := collection.InsertOne(ctx, u)
 	if insertErr != nil {
 		log.Fatal(insertErr)
 	}
-	fmt.Println(res)
+
+	if oid, ok := res.InsertedID.(primitive.ObjectID); ok {
+		u.Id = oid.Hex()
+	}
 
 	return u, nil
 }
 
 func AddUserChatRoom(u models.ChatRoomUsers, collection *mongo.Collection, ctx context.Context) (models.ChatRoomUsers, error) {
-	res, insertErr := collection.InsertOne(ctx, u)
+	u.Joined = time.Now()
+	_, insertErr := collection.InsertOne(ctx, u)
 	if insertErr != nil {
 		log.Fatal(insertErr)
 	}
-	fmt.Println(res)
 
 	return u, nil
 }

@@ -16,13 +16,12 @@ import (
 
 func GetUserById(id string, collection *mongo.Collection, ctx context.Context) (models.User, error) {
 	user := models.User{}
-	fmt.Println(id)
 	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		log.Println("Invalid id")
 	}
 
-	err = collection.FindOne(ctx, bson.D{{"id", objectId}}).Decode(&user)
+	err = collection.FindOne(ctx, bson.D{{"_id", objectId}}).Decode(&user)
 
 	if err != nil {
 		log.Println("User not found")
@@ -52,7 +51,9 @@ func AddUser(u models.User, collection *mongo.Collection, ctx context.Context) (
 	if insertErr != nil {
 		log.Fatal(insertErr)
 	}
-	fmt.Println(res)
+	if oid, ok := res.InsertedID.(primitive.ObjectID); ok {
+		u.Id = oid.Hex()
+	}
 
 	return u, nil
 }

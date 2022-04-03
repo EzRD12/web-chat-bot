@@ -35,7 +35,7 @@ func (uc userController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNotImplemented)
 		}
 	} else {
-		if helpers.IsAuthorized(r, w) {
+		if !helpers.IsAuthorized(r, w) {
 			return
 		}
 

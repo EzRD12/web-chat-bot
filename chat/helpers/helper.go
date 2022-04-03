@@ -31,7 +31,7 @@ func IsAuthorized(request *http.Request, response http.ResponseWriter) bool {
 
 		if err != nil {
 			response.WriteHeader(http.StatusUnauthorized)
-			response.Write([]byte(err.Error()))
+			response.Write([]byte("{\"error\":\"" + err.Error() + "\"}"))
 			return false
 		}
 
@@ -39,12 +39,12 @@ func IsAuthorized(request *http.Request, response http.ResponseWriter) bool {
 			return true
 		} else {
 			response.WriteHeader(http.StatusUnauthorized)
-			response.Write([]byte("Not Authorized"))
+			response.Write([]byte("{\"error\":\"Not Authorized\"}"))
 			return false
 		}
 	} else {
 		response.WriteHeader(http.StatusUnauthorized)
-		response.Write([]byte("Not Authorized"))
+		response.Write([]byte("{\"error\":\"Not Authorized\"}"))
 		return false
 	}
 }

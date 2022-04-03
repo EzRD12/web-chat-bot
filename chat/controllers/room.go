@@ -11,9 +11,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ezrod12/chat/auth"
 	"github.com/ezrod12/chat/helpers"
 	"github.com/ezrod12/chat/models"
 	"github.com/ezrod12/chat/services"
+	"gopkg.in/validator.v2"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -31,7 +33,7 @@ type roomController struct {
 
 func (uc roomController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	if helpers.IsAuthorized(r, w) {
+	if !helpers.IsAuthorized(r, w) {
 		return
 	}
 
@@ -40,7 +42,7 @@ func (uc roomController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case http.MethodGet:
 			uc.getAll(w, r)
 		case http.MethodPost:
-			uc.post(w, r)
+			uc.createRoom(w, r)
 		default:
 			w.WriteHeader(http.StatusNotImplemented)
 		}
@@ -52,27 +54,33 @@ func (uc roomController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		id := matches[1]
 
-		fmt.Println(id)
-
-		switch r.Method {
-		case http.MethodGet:
-			if len(roomMessages) == 0 {
-				uc.get(id, w)
-			} else {
-
+		if len(roomMessages) > 0 {
+			switch r.Method {
+			case http.MethodPost:
+				uc.createMessage(w, r)
+			case http.MethodGet:
+				uc.getRoomMessages(id, w)
+			default:
+				w.WriteHeader(http.StatusNotImplemented)
 			}
-		default:
-			w.WriteHeader(http.StatusNotImplemented)
+		} else {
+			if http.MethodGet == r.Method {
+				uc.get(id, w)
+			}
 		}
+		w.WriteHeader(http.StatusNotImplemented)
 	}
 }
 
 func (uc *roomController) getAll(w http.ResponseWriter, r *http.Request) {
-	encodeResponseAsJson(services.GetRooms(uc.collection, uc.context), w)
+	claims, _ := auth.ExtractClaims(r.Header.Get("Authorization"))
+	value := claims["userId"]
+	roomsId := services.GetRoomsIdAssignedToUser(value.(string), uc.chatRoomUsersCollection, uc.context)
+	encodeResponseAsJson(services.GetRoomsByIds(roomsId, uc.chatRoomCollection, uc.context), w)
 }
 
 func (uc *roomController) get(id string, w http.ResponseWriter) {
-	u, err := services.GetChatRoomDetailById(id, uc.collection, uc.context)
+	u, err := services.GetChatRoomDetailById(id, uc.chatRoomCollection, uc.context)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -104,23 +112,63 @@ func newRoomController() *roomController {
 	userCollection := client.Database("chat-bot").Collection("users")
 	messageCollection := client.Database("chat-bot").Collection("messages")
 	chatRoomCollection := client.Database("chat-bot").Collection("rooms")
+	chatRoomUsersCollection := client.Database("chat-bot").Collection("chat-users")
 
 	return &roomController{
-		roomIdPattern:       regexp.MustCompile(`/rooms/([A-Za-z0-9\-]+)/?`),
-		roomMessagesPattern: regexp.MustCompile(`/rooms/([A-Za-z0-9\-]+)/messages?`),
-		collection:          messageCollection,
-		userCollection:      userCollection,
-		chatRoomCollection:  chatRoomCollection,
+		roomIdPattern:           regexp.MustCompile(`/rooms/([A-Za-z0-9\-]+)/?`),
+		roomMessagesPattern:     regexp.MustCompile(`/rooms/([A-Za-z0-9\-]+)/messages?`),
+		collection:              messageCollection,
+		userCollection:          userCollection,
+		chatRoomCollection:      chatRoomCollection,
+		chatRoomUsersCollection: chatRoomUsersCollection,
 	}
 }
 
-func (uc *roomController) post(w http.ResponseWriter, r *http.Request) {
+func (uc *roomController) createRoom(w http.ResponseWriter, r *http.Request) {
+	u, err := uc.parseRoomRequest(r)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("{\"error\":\"" + err.Error() + "\"}"))
+		return
+	}
+
+	err = uc.validateRoomEntity(u, true)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("{\"error\":\"" + err.Error() + "\"}"))
+		return
+	}
+
+	var existRoom models.ChatRoom
+	existRoom, err = services.GetRoomsByName(u.Name, uc.chatRoomCollection, uc.context)
+
+	if err != nil {
+		existRoom, err = services.AddRoom(u, uc.chatRoomCollection, uc.context)
+	} else {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("{\"error\":\"Room with name" + existRoom.Name + " already exists\"}"))
+	}
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("{\"error\":\"" + err.Error() + "\"}"))
+	}
+
+	encodeResponseAsJson(existRoom, w)
+}
+
+func (uc *roomController) createMessage(w http.ResponseWriter, r *http.Request) {
 	u, err := uc.parseRequest(r)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("{\"error\":\"" + err.Error() + "\"}"))
 		return
 	}
+
+	claims, _ := auth.ExtractClaims(r.Header.Get("Authorization"))
+	value := claims["userId"]
+	u.SenderUserId = value.(string)
+	u.Created = time.Now()
 
 	err = uc.validateMessageEntity(u, true)
 	if err != nil {
@@ -152,11 +200,25 @@ func (uc *roomController) parseRequest(r *http.Request) (models.Message, error) 
 	return m, nil
 }
 
-func (mc *roomController) validateMessageEntity(message models.Message, createMode bool) error {
-	if strings.Trim(message.Value, " ") == "" {
-		return errors.New("property firstname must contain a valid string value")
+func (uc *roomController) parseRoomRequest(r *http.Request) (models.ChatRoom, error) {
+	dec := json.NewDecoder(r.Body)
+	var m models.ChatRoom
+	err := dec.Decode(&m)
+
+	if err != nil {
+		return models.ChatRoom{}, err
 	}
 
+	m.Created = time.Now()
+
+	return m, nil
+}
+
+func (mc *roomController) validateMessageEntity(message models.Message, createMode bool) error {
+	if strings.Trim(message.Value, " ") == "" {
+		return errors.New("message value must contain a valid string value")
+	}
+	fmt.Println(message.SenderUserId)
 	_, err := services.GetUserById(message.SenderUserId, mc.userCollection, mc.context)
 
 	if err != nil {
@@ -167,6 +229,14 @@ func (mc *roomController) validateMessageEntity(message models.Message, createMo
 
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (mc *roomController) validateRoomEntity(room models.ChatRoom, createMode bool) error {
+	if errs := validator.Validate(room); errs != nil {
+		return errs
 	}
 
 	return nil

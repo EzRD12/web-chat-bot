@@ -16,29 +16,26 @@ func AddMessage(m models.Message, collection *mongo.Collection, ctx context.Cont
 	if insertErr != nil {
 		log.Fatal(insertErr)
 	}
-	fmt.Println(res)
+
+	if oid, ok := res.InsertedID.(primitive.ObjectID); ok {
+		m.Id = oid.Hex()
+	}
 
 	return m, nil
 }
 
 func GetRoomMessages(id string, collection *mongo.Collection, ctx context.Context) ([]*models.Message, error) {
-	objectId, err := primitive.ObjectIDFromHex(id)
-
-	if err != nil {
-		log.Println("Invalid id")
-	}
-
-	cur, currErr := collection.Find(ctx, bson.D{{"chatRoomId", objectId}})
+	cur, currErr := collection.Find(ctx, bson.D{{"chatroomid", id}})
 
 	if currErr != nil {
-		panic(currErr)
+		log.Fatal(currErr)
 	}
 	defer cur.Close(ctx)
 
 	var messagesCollection []*models.Message
-	if err = cur.All(ctx, &messagesCollection); err != nil {
-		panic(err)
+	if currErr := cur.All(ctx, &messagesCollection); currErr != nil {
+		log.Fatal(currErr)
 	}
 	fmt.Println(messagesCollection)
-	return messagesCollection, err
+	return messagesCollection, currErr
 }

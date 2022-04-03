@@ -17,13 +17,13 @@ import (
 
 type Claims struct {
 	Username string
+	UserId   string
 }
 
 func AuthUser(response http.ResponseWriter, authRequest models.AuthenthicationRequest, context context.Context, collection *mongo.Collection) {
 	response.Header().Set("Content-Type", "application/json")
 	var dbUser models.User
 	authRequest.Username = strings.ToLower(authRequest.Username)
-
 	dbUser, err := services.GetUserByUsername(authRequest.Username, collection, context)
 
 	if err != nil {
@@ -44,7 +44,7 @@ func AuthUser(response http.ResponseWriter, authRequest models.AuthenthicationRe
 		return
 	}
 
-	jwtToken, err := GenerateJWT(&Claims{Username: authRequest.Username})
+	jwtToken, err := GenerateJWT(&Claims{Username: authRequest.Username, UserId: dbUser.Id})
 	if err != nil {
 		response.WriteHeader(http.StatusInternalServerError)
 		response.Write([]byte(`{"message":"` + err.Error() + `"}`))
@@ -61,6 +61,7 @@ func GenerateJWT(c *Claims) (string, error) {
 	claims := token.Claims.(jwt.MapClaims)
 	claims["authorized"] = true
 	claims["user"] = c.Username
+	claims["userId"] = c.UserId
 	claims["exp"] = time.Now().Add(time.Minute * 30).Unix()
 
 	tokenString, err := token.SignedString([]byte(settings.Configuration.AppConfig.SecretKey))
@@ -70,4 +71,23 @@ func GenerateJWT(c *Claims) (string, error) {
 	}
 
 	return tokenString, nil
+}
+
+func ExtractClaims(tokenStr string) (jwt.MapClaims, bool) {
+	hmacSecretString := settings.Configuration.AppConfig.SecretKey
+	hmacSecret := []byte(hmacSecretString)
+	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
+		return hmacSecret, nil
+	})
+
+	if err != nil {
+		return nil, false
+	}
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		return claims, true
+	} else {
+		log.Printf("Invalid JWT Token")
+		return nil, false
+	}
 }

@@ -5,8 +5,8 @@ import (
 )
 
 type ChatRoom struct {
-	Id      string `json:"id" bson:"_id,omitempty"`
-	Name    string `max:"65" required:"true"`
+	Id      string `json:"id" bson:"_id,omitempty" required:"true"`
+	Name    string `validate:"nonzero, max=32, min=5" json:"name" bson:"name"`
 	Created time.Time
 }
 

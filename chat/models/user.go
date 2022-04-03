@@ -15,6 +15,6 @@ type User struct {
 }
 
 type AuthenthicationRequest struct {
-	Username string `json:"username" bson:"username" validate:"max=20, nonzero"`
-	Password string `validate:"min=8"`
+	Username string
+	Password string
 }

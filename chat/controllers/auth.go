@@ -54,7 +54,7 @@ func (ac *authController) post(w http.ResponseWriter, r *http.Request) {
 	authRequest, err := ac.parseRequest(r)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		w.Write([]byte("{\"error\":\"" + err.Error() + "\"}"))
 		return
 	}
 
