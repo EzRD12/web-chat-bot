@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Chat</title>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script type="text/javascript">
+window.onload = function () {
+    var token = localStorage.getItem('token');
+    if(!token) {
+        window.location.href = "http://localhost:8080/";
+    }
+
+    var rooms = document.getElementById("rooms");
+
+    function getRoomListItem(room) {
+        var li = document.createElement("li")
+        var a = document.createElement("a");
+        a.setAttribute("href", "#html");
+        var text = document.createTextNode(room.name);
+        a.appendChild(text)
+        li.appendChild(a);
+        a.addEventListener("click", function() {
+            localStorage.setItem('room', JSON.stringify(room));
+            window.location.href = "http://localhost:8080/chat";
+        });
+        return li;
+    }
+
+    $(document).ready(function(){
+            $.ajax({
+                type: 'GET',
+                url: "http://localhost:8080/rooms",
+                headers: {
+                    'Authorization': token
+                },
+                contentType: "application/json; charset=utf-8",
+                dataType: 'json',
+                headers: {"Authorization": localStorage.getItem('token')}
+            }).done(function(res) {
+                if(!res) {
+                    rooms.children = "";
+                    var li = getRoomListItem("#general");
+                    rooms.appendChild(li);
+
+                    rooms.children = "";
+                    var li = getRoomListItem("#discord");
+                    rooms.appendChild(li);
+
+                    rooms.children = "";
+                    var li = getRoomListItem("#slack");
+                    rooms.appendChild(li);
+                    return;
+                }
+                
+                res.forEach(room => {
+                    var li = getRoomListItem(room);
+                    rooms.appendChild(li);
+                });
+            });
+        });
+};
+</script>
+<style type="text/css">
+.rooms {
+  margin: 0;
+  padding: 0;
+  list-style-type: none;
+}
+
+</style>
+</head>
+<body>
+    <h3>Chat rooms</h1>
+    <ul id="rooms" class="rooms"></ul>
+</body>
+</html>

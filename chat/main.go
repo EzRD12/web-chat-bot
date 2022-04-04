@@ -6,10 +6,12 @@ import (
 
 	"github.com/ezrod12/chat/controllers"
 	"github.com/ezrod12/chat/messager"
+	"github.com/ezrod12/chat/pkg"
 	"github.com/ezrod12/chat/settings"
 )
 
 func main() {
+	pkg.RoomsMessages = make(map[string][]string)
 	config := settings.GetConfig()
 	amqp, err := messager.Connect(config)
 
@@ -23,8 +25,12 @@ func main() {
 	}
 	defer ch.Close()
 
-	controllers.RegisterController()
-	http.ListenAndServe(":3000", nil)
+	s := pkg.NewServer()
+	go s.Run()
+
+	go controllers.RegisterController(s)
+
+	http.ListenAndServe(":8080", nil)
 
 	log.Printf(" [*] Service started. To exit press CTRL+C")
 }

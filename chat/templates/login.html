@@ -1,0 +1,50 @@
+<html>
+    <head>
+      <title>Chat</title>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <script type="text/javascript">
+          window.onload = function () {
+              if(localStorage.getItem('token')) {
+                  window.location.href = "http://localhost:8080/home";
+              }
+          };
+          </script>
+    </head>
+    <body>
+      <h1>Login</h1>
+      <form id="login" method="post">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password">
+        <button type="submit">Login</button>
+        <br>
+        <a href="http://localhost:8080/signup">Sign up</a>
+      </form>
+    </body>
+    <script>
+      $(document).ready(function(){
+          $("button").click(function(){
+              $.ajax({
+                type: 'POST',
+                url: "http://localhost:8080/auth",
+                contentType: "application/json; charset=utf-8",
+                dataType: 'json',
+                data: JSON.stringify({
+                  username: $("#username").val(),
+                  password: $("#password").val()
+                }),
+                error: function(e) {
+                  alert('User not found')
+                }
+              }).done(function(res) {
+                localStorage.setItem('token', res.token)
+                window.location.href = "http://localhost:8080/home";
+              });
+          });
+          $("#login").submit(function(e){
+              return false;
+          });
+        });
+      </script>
+</html>
