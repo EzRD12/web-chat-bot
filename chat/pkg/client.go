@@ -155,7 +155,7 @@ func (c *Client) writePump() {
 			fmt.Println(messageRequest)
 
 			if messageRequest.Username != "system" && messageRequest.Username != "robot" {
-				go services.AddMessage(messageRequest, c.messageCollection, context.TODO())
+				services.AddMessage(messageRequest, c.messageCollection, context.TODO())
 			}
 
 			// Add queued chat messages to the current websocket message.

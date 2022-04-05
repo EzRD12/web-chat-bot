@@ -69,7 +69,7 @@ window.onload = function () {
           var userId = localStorage.getItem('userId');
           var roomstring = localStorage.getItem('room');
           var room = JSON.parse(roomstring);
-          message = {value: msg.value, username: user, chatRoomId: room.id, senderUserId: userId}
+          message = {value: msg.value, username: user, chatRoomId: room.id, senderUserId: userId, created: moment().format()}
           result = JSON.stringify(message)
         }
 
@@ -145,15 +145,23 @@ window.onload = function () {
             appendLog(item);
         };
         conn.onmessage = function (evt) {
+          var roomString = localStorage.getItem('room');
+          var room = JSON.parse(roomString);
+
             var messages = evt.data.split('\n');
             for (var i = 0; i < messages.length; i++) {
                 var item = document.createElement("div");
+                console.log(messages[i])
+
                 if (messages[i].toLowerCase().includes("/stock=")) {
                   return;
                 }
 
-                console.log(messages[i])
                 messageResponse = JSON.parse(messages[i]);
+                
+                if (messageResponse.chatRoomId != room.id) {
+                  return;
+                }
 
                 if (messageResponse.username === 'system' || messageResponse.username === 'robot') {
                   html = senderHtml.replace('#USERNAME', messageResponse.username)

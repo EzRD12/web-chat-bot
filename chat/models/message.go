@@ -16,5 +16,5 @@ type StockMessage struct {
 	HubName             string `json:"hubName"`
 	ClientRemoteAddress string `json:"clientRemoteAddress"`
 	Message             string `json:"message"`
-	RoomId              string `json:"message"`
+	RoomId              string `json:"roomId"`
 }

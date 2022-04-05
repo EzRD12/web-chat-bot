@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"sync"
-	"time"
 
 	"github.com/ezrod12/chat/models"
 	"go.mongodb.org/mongo-driver/bson"
@@ -19,10 +18,14 @@ func AddMessage(m models.Message, collection *mongo.Collection, ctx context.Cont
 	mapMutex := sync.RWMutex{}
 
 	mapMutex.Lock()
-	m.Created = time.Now()
 	message := models.Message{}
 
+	fmt.Println("VEAMOS")
+	fmt.Println(m)
 	currErr := collection.FindOne(ctx, bson.M{"chatRoomId": m.ChatRoomId, "username": m.Username, "value": m.Value, "created": m.Created}).Decode(&message)
+	fmt.Println(message)
+	fmt.Println(currErr)
+
 	if currErr == nil {
 		return m, errors.New("message already exists")
 	}

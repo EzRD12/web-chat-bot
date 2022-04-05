@@ -4,7 +4,6 @@ import (
 	"bot/core"
 	"bot/messaging"
 	"encoding/json"
-	"fmt"
 	"log"
 )
 
@@ -29,7 +28,6 @@ func main() {
 			var cm messaging.StockMessage
 			json.Unmarshal(d.Body, &cm)
 			message, err := core.GetStockQuote(cm.Message)
-			fmt.Println(cm)
 			stockMessage := &messaging.StockMessage{HubName: cm.HubName, ClientRemoteAddress: cm.ClientRemoteAddress, Message: message, RoomId: cm.RoomId}
 			if err != nil {
 				log.Fatal(err)

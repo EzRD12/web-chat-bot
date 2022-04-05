@@ -63,6 +63,7 @@ window.onload = function () {
     var rooms = document.getElementById("rooms");
 
     $("#logout").click(function(){
+      localStorage.removeItem('token');
       window.location.href = "http://localhost:8080/";
     });
 
