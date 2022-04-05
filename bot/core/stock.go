@@ -26,6 +26,7 @@ type StockResponse struct {
 }
 
 func GetStockQuote(code string) (string, error) {
+	fmt.Println(code)
 	if code == "" {
 		return "", errors.New("invalid code")
 	}

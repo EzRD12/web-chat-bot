@@ -52,21 +52,24 @@ window.onload = function () {
     }
 
     document.getElementById("form").onsubmit = function () {
+        var roomString = localStorage.getItem('room');
+        var room = JSON.parse(roomString);
         if (!conn) {
             return false;
         }
         if (!msg.value) {
             return false;
         }
-
+        console.log(msg.value.toLowerCase())
         if (msg.value.toLowerCase().includes("/stock=")) {
-          result = msg.value
+          message = {value: msg.value, username: 'system', chatRoomId: room.id}
+          result = JSON.stringify(message)
         } else {
           var user = localStorage.getItem('username');
           var userId = localStorage.getItem('userId');
           var roomstring = localStorage.getItem('room');
           var room = JSON.parse(roomstring);
-          message = {value: msg.value, username: user, chatroomid: room.id, senderUserId: userId}
+          message = {value: msg.value, username: user, chatRoomId: room.id, senderUserId: userId}
           result = JSON.stringify(message)
         }
 
@@ -145,9 +148,12 @@ window.onload = function () {
             var messages = evt.data.split('\n');
             for (var i = 0; i < messages.length; i++) {
                 var item = document.createElement("div");
-                index = messages[i].indexOf("{");
+                if (messages[i].toLowerCase().includes("/stock=")) {
+                  return;
+                }
+
                 console.log(messages[i])
-                messageResponse = JSON.parse(messages[i].slice(index, messages[i].length));
+                messageResponse = JSON.parse(messages[i]);
 
                 if (messageResponse.username === 'system' || messageResponse.username === 'robot') {
                   html = senderHtml.replace('#USERNAME', messageResponse.username)

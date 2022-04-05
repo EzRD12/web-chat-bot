@@ -30,7 +30,7 @@ func RegisterController(sv *pkg.Server) {
 			hubs := *sv.GetHubs()
 			hub := hubs[response.HubName]
 
-			message := &models.Message{Value: response.Message, Username: "system", Created: time.Now()}
+			message := &models.Message{Value: response.Message, Username: "system", Created: time.Now(), ChatRoomId: response.RoomId}
 			result, _ := json.Marshal(message)
 
 			hub.SendTo(string(result), response.ClientRemoteAddress)

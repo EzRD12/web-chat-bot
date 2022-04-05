@@ -57,8 +57,13 @@ func SendMessage(message *models.StockMessage) {
 	)
 	failOnError(err, "Failed to declare a queue")
 
+	fmt.Println(message)
 	json, err := json.Marshal(message)
+	fmt.Println(json)
+
 	if err != nil {
+		fmt.Println(err)
+		fmt.Println("FALLO")
 		failOnError(err, "Failed to parse body message")
 	}
 

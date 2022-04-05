@@ -2,8 +2,10 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/ezrod12/chat/models"
@@ -14,7 +16,17 @@ import (
 )
 
 func AddMessage(m models.Message, collection *mongo.Collection, ctx context.Context) (models.Message, error) {
+	mapMutex := sync.RWMutex{}
+
+	mapMutex.Lock()
 	m.Created = time.Now()
+	message := models.Message{}
+
+	currErr := collection.FindOne(ctx, bson.M{"chatRoomId": m.ChatRoomId, "username": m.Username, "value": m.Value, "created": m.Created}).Decode(&message)
+	if currErr == nil {
+		return m, errors.New("message already exists")
+	}
+
 	res, insertErr := collection.InsertOne(ctx, m)
 	if insertErr != nil {
 		log.Fatal(insertErr)
@@ -23,6 +35,7 @@ func AddMessage(m models.Message, collection *mongo.Collection, ctx context.Cont
 	if oid, ok := res.InsertedID.(primitive.ObjectID); ok {
 		m.Id = oid.Hex()
 	}
+	mapMutex.Unlock()
 
 	return m, nil
 }

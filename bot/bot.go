@@ -29,8 +29,8 @@ func main() {
 			var cm messaging.StockMessage
 			json.Unmarshal(d.Body, &cm)
 			message, err := core.GetStockQuote(cm.Message)
-			fmt.Println(cm.Message)
-			stockMessage := &messaging.StockMessage{HubName: cm.HubName, ClientRemoteAddress: cm.ClientRemoteAddress, Message: message}
+			fmt.Println(cm)
+			stockMessage := &messaging.StockMessage{HubName: cm.HubName, ClientRemoteAddress: cm.ClientRemoteAddress, Message: message, RoomId: cm.RoomId}
 			if err != nil {
 				log.Fatal(err)
 				return

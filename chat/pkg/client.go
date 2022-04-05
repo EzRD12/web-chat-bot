@@ -169,12 +169,14 @@ func (c *Client) writePump() {
 				return
 			}
 
-			paramsMap := GetParams(StockPattern, string(message))
+			paramsMap := GetParams(StockPattern, messageRequest.Value)
 			stockKey := "Stock"
 			mapMutex.RLock()
 			if v, ok := paramsMap[stockKey]; ok {
 				mapMutex.RUnlock()
-				message := models.StockMessage{HubName: c.hub.name, ClientRemoteAddress: c.conn.RemoteAddr().String(), Message: v}
+				message := models.StockMessage{HubName: c.hub.name, ClientRemoteAddress: c.conn.RemoteAddr().String(), Message: v, RoomId: messageRequest.ChatRoomId}
+				fmt.Println("AQUI VOY")
+				fmt.Println(message)
 				messager.SendMessage(&message)
 				delete(paramsMap, stockKey)
 			}
