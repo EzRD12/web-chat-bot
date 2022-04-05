@@ -29,7 +29,6 @@ func GetStockQuote(code string) (string, error) {
 	if code == "" {
 		return "", errors.New("invalid code")
 	}
-
 	data, err := readCSVFromUrl(messaging.STOCK_URL + code)
 	if err != nil {
 		return "", errors.New("error parsing CSV from URL")
@@ -52,7 +51,9 @@ func GetStockQuote(code string) (string, error) {
 }
 
 func readCSVFromUrl(url string) ([][]string, error) {
+	fmt.Println(url)
 	resp, err := http.Get(url)
+
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +61,9 @@ func readCSVFromUrl(url string) ([][]string, error) {
 	defer resp.Body.Close()
 	reader := csv.NewReader(resp.Body)
 	reader.Comma = ';'
+	reader.LazyQuotes = true
 	data, err := reader.ReadAll()
+	fmt.Println(data)
 	if err != nil {
 		return nil, err
 	}

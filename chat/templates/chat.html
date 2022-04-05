@@ -11,9 +11,14 @@
 <script type="text/javascript">
 window.onload = function () {
     var token = localStorage.getItem('token');
+    var roomString = localStorage.getItem('room');
+    var room = JSON.parse(roomString);
     if(!token) {
         window.location.href = "http://localhost:8080/";
     }
+
+    var roomLabel = document.getElementById('room');
+    roomLabel.innerText = room.name;
     
     var conn;
     var msg = document.getElementById("msg");
@@ -53,9 +58,19 @@ window.onload = function () {
         if (!msg.value) {
             return false;
         }
-        var user = localStorage.getItem('username');
-        message = {value: msg.value, username: user}
-        result = JSON.stringify(message)
+
+        if (msg.value.toLowerCase().includes("/stock=")) {
+          result = msg.value
+        } else {
+          var user = localStorage.getItem('username');
+          var userId = localStorage.getItem('userId');
+          var roomstring = localStorage.getItem('room');
+          var room = JSON.parse(roomstring);
+          message = {value: msg.value, username: user, chatroomid: room.id, senderUserId: userId}
+          result = JSON.stringify(message)
+        }
+
+        
         conn.send(result);
         msg.value = "";
         return false;
@@ -85,15 +100,16 @@ window.onload = function () {
                             return
                         }
                         messages = messages.sort(function (a, b) {
-                          if (moment(a).isAfter(b)) {
+                          if (moment(a.created).isAfter(b.created)) {
                             return 1;
                           }
-                          if (moment(b).isAfter(a)) {
+                          if (moment(b.created).isAfter(a.created)) {
                             return -1;
                           }
                           // a must be equal to b
                           return 0;
                         })
+
                         for (var i = 0; i < messages.length; i++) {
                             var item = document.createElement("div");
                             if (messages[i].username === 'system') {

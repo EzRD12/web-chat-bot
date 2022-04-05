@@ -1,4 +1,14 @@
-{
-    "name": "general",
-    "created": "2022-03-01T00:00:00Z"
-}
+[
+    {
+        "name": "general",
+        "created": "2022-03-01T00:00:00Z"
+    },
+    {
+        "name": "developer",
+        "created": "2022-03-01T00:00:00Z"
+    },
+    {
+        "name": "team",
+        "created": "2022-03-01T00:00:00Z"
+    }
+]

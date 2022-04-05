@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/ezrod12/chat/models"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var RoomsMessages map[string][]string
@@ -43,6 +45,7 @@ func (s *Server) Run() {
 
 // serveWs handles websocket requests from the peer.
 func (s *Server) ServeWs(w http.ResponseWriter, r *http.Request) {
+	collection := initializeCollection()
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
@@ -54,10 +57,11 @@ func (s *Server) ServeWs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := &Client{hub: s.hubs["#general"],
-		nick:    "anonymous",
-		conn:    conn,
-		send:    make(chan []byte, 256),
-		options: s.options,
+		nick:              "anonymous",
+		conn:              conn,
+		send:              make(chan []byte, 256),
+		options:           s.options,
+		messageCollection: collection,
 	}
 
 	client.hub.register <- client
@@ -66,6 +70,22 @@ func (s *Server) ServeWs(w http.ResponseWriter, r *http.Request) {
 	// new goroutines.
 	go client.writePump()
 	go client.readPump()
+}
+
+func initializeCollection() *mongo.Collection {
+	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	err = client.Connect(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+	collec := client.Database("chat-bot").Collection("messages")
+
+	return collec
 }
 
 func initializeHubs(s *Server) {

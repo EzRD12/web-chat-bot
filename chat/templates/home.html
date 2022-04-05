@@ -62,13 +62,17 @@ window.onload = function () {
 
     var rooms = document.getElementById("rooms");
 
+    $("#logout").click(function(){
+      window.location.href = "http://localhost:8080/";
+    });
+
     function getRoomListItem(room) {
 
         var roomElement = document.getElementById("room-box")
-        var roomHTML = `<a class="list-group-item list-group-item-action active text-white rounded-0">
+        var roomHTML = `<a  class="list-group-item list-group-item-action text-white rounded-0">
                     <div class="media"><img src="https://www.pngarts.com/files/8/Hashtag-PNG-Pic.png" alt="user" width="50" class="rounded-circle">
                       <div class="media-body ml-4">
-                        <div class="d-flex align-items-center justify-content-between mb-1">
+                        <div style="color: black !important;" class="d-flex align-items-center justify-content-between mb-1">
                           <h6 class="mb-0">#NAME</h6><small class="small font-weight-bold">#CREATE_DATE</small>
                         </div>
                       </div>
@@ -96,25 +100,13 @@ window.onload = function () {
                 dataType: 'json',
                 headers: {"Authorization": localStorage.getItem('token')}
             }).done(function(res) {
-                if(!res) {
-                    rooms.children = "";
-                    var li = getRoomListItem("#general");
-                    rooms.appendChild(li);
 
-                    rooms.children = "";
-                    var li = getRoomListItem("#discord");
-                    rooms.appendChild(li);
-
-                    rooms.children = "";
-                    var li = getRoomListItem("#slack");
-                    rooms.appendChild(li);
-                    return;
-                }
-                
-                res.forEach(room => {
+                if (res) {
+                  res.forEach(room => {
                     var li = getRoomListItem(room);
                     rooms.appendChild(li);
                 });
+                }
             })
             .fail(function(err) {
               if (err.status == 401) {
@@ -140,6 +132,7 @@ window.onload = function () {
   
           <div class="bg-gray px-4 py-2 bg-light">
             <p class="h5 mb-0 py-1">Chat Rooms</p>
+
           </div>
   
           <div class="messages-box">
@@ -148,6 +141,11 @@ window.onload = function () {
           </div>
         </div>
       </div>
+
+      <div class="col-7 px-0">
+        <div id="log"class="px-4 py-5 chat-box bg-white">
+            <button id="logout" type="button" style="float: right;" class="btn btn-danger">Log out</button>
+        </div>
  
     </div>
   </div>

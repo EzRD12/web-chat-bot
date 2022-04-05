@@ -41,22 +41,36 @@ func InitStartup() *startup {
 	}
 }
 
-func (s *startup) InsertRoomSeedData() (models.ChatRoom, error) {
-	var room models.ChatRoom
-	err := readRoomSeedDataFile(&room)
-
-	if err != nil {
-		return models.ChatRoom{}, nil
+func (s *startup) InsertRoomSeedData() ([]models.ChatRoom, error) {
+	rooms := []models.ChatRoom{
+		models.ChatRoom{
+			Name:    "general",
+			Created: time.Now(),
+		},
+		models.ChatRoom{
+			Name:    "developers",
+			Created: time.Now(),
+		},
+		models.ChatRoom{
+			Name:    "team",
+			Created: time.Now(),
+		},
 	}
 
 	var existRoom models.ChatRoom
-	existRoom, err = services.GetRoomsByName(room.Name, s.roomCollection, s.context)
+	var err error
+	var roomsAdded []models.ChatRoom
 
-	if err != nil {
-		existRoom, _ = services.AddRoom(room, s.roomCollection, s.context)
+	for _, room := range rooms {
+		existRoom, err = services.GetRoomsByName(room.Name, s.roomCollection, s.context)
+
+		if err != nil {
+			existRoom, _ = services.AddRoom(room, s.roomCollection, s.context)
+		}
+		roomsAdded = append(roomsAdded, existRoom)
 	}
 
-	return existRoom, nil
+	return roomsAdded, nil
 }
 
 func (s *startup) InsertUserSeedData() (models.User, error) {
@@ -88,38 +102,21 @@ func (s *startup) InsertUsersRoomData(userId, roomId string) {
 	services.AddUserChatRoom(userChatRoom, s.usersRoomCollection, s.context)
 }
 
-func readRoomSeedDataFile(data *models.ChatRoom) error {
-	f, err := os.Open("seed-data/room.json")
-
-	if err != nil {
-		log.Fatal(err)
-		return err
-	}
-
-	defer f.Close()
-
-	decoder := json.NewDecoder(f)
-	err = decoder.Decode(data)
-	if err != nil {
-		log.Fatal(err)
-		return err
-	}
-
-	return nil
-}
-
 func (s *startup) SaveSeedData() {
-	var room models.ChatRoom
+	var rooms []models.ChatRoom
 	var user models.User
 
-	room, roomError := s.InsertRoomSeedData()
+	rooms, roomError := s.InsertRoomSeedData()
 	user, userError := s.InsertUserSeedData()
 
 	if roomError != nil || userError != nil {
 		return
 	}
 
-	s.InsertUsersRoomData(user.Id, room.Id)
+	for _, room := range rooms {
+		s.InsertUsersRoomData(user.Id, room.Id)
+	}
+
 }
 
 func readUserSeedDataFile(data *models.User) error {

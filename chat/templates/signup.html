@@ -26,7 +26,7 @@
           $("button").click(function(){
               $.ajax({
                 type: 'POST',
-                url: "http://localhost:8080/api/account/signup",
+                url: "http://localhost:8080/users",
                 contentType: "application/json; charset=utf-8",
                 dataType: 'json',
                 data: JSON.stringify({
@@ -34,6 +34,7 @@
                   password: $("#password").val()
                 })
               }).done(function(res) {
+                alert("User created");
                 window.location.href = "http://localhost:8080/";
               });
           });

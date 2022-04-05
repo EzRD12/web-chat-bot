@@ -38,6 +38,7 @@
                   alert('User not found')
                 }
               }).done(function(res) {
+                console.log(res)
                 localStorage.setItem('token', res.token)
                 localStorage.setItem('userId', res.userId)
                 localStorage.setItem('username', res.username)

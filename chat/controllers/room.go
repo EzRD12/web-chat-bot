@@ -37,6 +37,10 @@ func (uc roomController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if r.URL.Path == "/rooms/users" {
+		uc.getRoomsByUser(w, r)
+	}
+
 	if r.URL.Path == "/rooms" {
 		switch r.Method {
 		case http.MethodGet:
@@ -73,6 +77,10 @@ func (uc roomController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (uc *roomController) getAll(w http.ResponseWriter, r *http.Request) {
+	encodeResponseAsJson(services.GetRooms(uc.chatRoomCollection, uc.context), w)
+}
+
+func (uc *roomController) getRoomsByUser(w http.ResponseWriter, r *http.Request) {
 	claims, _ := auth.ExtractClaims(r.Header.Get("Authorization"))
 	value := claims["userId"]
 	roomsId := services.GetRoomsIdAssignedToUser(value.(string), uc.chatRoomUsersCollection, uc.context)

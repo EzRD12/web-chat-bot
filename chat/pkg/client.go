@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -10,7 +11,10 @@ import (
 
 	"github.com/ezrod12/chat/messager"
 	"github.com/ezrod12/chat/models"
+	"github.com/ezrod12/chat/services"
 	"github.com/gorilla/websocket"
+
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 const (
@@ -37,6 +41,8 @@ var upgrader = websocket.Upgrader{
 // Client is a middleman between the websocket connection and the hub.
 type Client struct {
 	hub *Hub
+
+	messageCollection *mongo.Collection
 
 	// Nickname.
 	nick string
@@ -140,10 +146,17 @@ func (c *Client) writePump() {
 				return
 			}
 
-			hours, minutes, _ := time.Now().Clock()
-			message = []byte(fmt.Sprintf("%d:%02d - %s", hours, minutes, message))
-
 			w.Write(message)
+
+			messageRequest := models.Message{}
+
+			json.Unmarshal(message, &messageRequest)
+
+			fmt.Println(messageRequest)
+
+			if messageRequest.Username != "system" && messageRequest.Username != "robot" {
+				go services.AddMessage(messageRequest, c.messageCollection, context.TODO())
+			}
 
 			// Add queued chat messages to the current websocket message.
 			n := len(c.send)

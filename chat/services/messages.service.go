@@ -4,14 +4,17 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/ezrod12/chat/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func AddMessage(m models.Message, collection *mongo.Collection, ctx context.Context) (models.Message, error) {
+	m.Created = time.Now()
 	res, insertErr := collection.InsertOne(ctx, m)
 	if insertErr != nil {
 		log.Fatal(insertErr)
@@ -25,7 +28,8 @@ func AddMessage(m models.Message, collection *mongo.Collection, ctx context.Cont
 }
 
 func GetRoomMessages(id string, collection *mongo.Collection, ctx context.Context) ([]*models.Message, error) {
-	cur, currErr := collection.Find(ctx, bson.D{{"chatroomid", id}})
+	opts := options.Find().SetLimit(50).SetSort(bson.D{{"created", -1}})
+	cur, currErr := collection.Find(ctx, bson.D{{"chatRoomId", id}}, opts)
 
 	if currErr != nil {
 		log.Fatal(currErr)
