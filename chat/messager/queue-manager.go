@@ -46,7 +46,7 @@ func OpenChannel() (*amqp.Channel, error) {
 	return ch, nil
 }
 
-func SendMessage(message *models.StockRequest) {
+func SendMessage(message *models.StockMessage) {
 	q, err := Channel.QueueDeclare(
 		GetStockQueue, // name
 		false,         // durable

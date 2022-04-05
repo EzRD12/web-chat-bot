@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"regexp"
@@ -13,7 +12,6 @@ import (
 
 	"github.com/ezrod12/chat/auth"
 	"github.com/ezrod12/chat/helpers"
-	"github.com/ezrod12/chat/messager"
 	"github.com/ezrod12/chat/models"
 	"github.com/ezrod12/chat/services"
 	"gopkg.in/validator.v2"
@@ -169,19 +167,11 @@ func (uc *roomController) createMessage(w http.ResponseWriter, r *http.Request) 
 	}
 
 	claims, _ := auth.ExtractClaims(r.Header.Get("Authorization"))
-	value := claims["userId"]
-	msg.SenderUserId = value.(string)
+	value := claims["user"]
+	msg.Username = value.(string)
 	msg.Created = time.Now()
 
 	err = uc.validateMessageEntity(msg, true)
-
-	stockMessageMatches := uc.stockMessagePattern.FindStringSubmatch(msg.Value)
-
-	if len(stockMessageMatches) > 0 {
-		var code string = stockMessageMatches[1]
-		var stockRequest models.StockRequest = models.StockRequest{Code: code, RoomId: msg.ChatRoomId}
-		messager.SendMessage(&stockRequest)
-	}
 
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -230,14 +220,8 @@ func (mc *roomController) validateMessageEntity(message models.Message, createMo
 	if strings.Trim(message.Value, " ") == "" {
 		return errors.New("message value must contain a valid string value")
 	}
-	fmt.Println(message.SenderUserId)
-	_, err := services.GetUserById(message.SenderUserId, mc.userCollection, mc.context)
 
-	if err != nil {
-		return err
-	}
-
-	_, err = services.GetChatRoomDetailById(message.ChatRoomId, mc.chatRoomCollection, mc.context)
+	_, err := services.GetChatRoomDetailById(message.ChatRoomId, mc.chatRoomCollection, mc.context)
 
 	if err != nil {
 		return err

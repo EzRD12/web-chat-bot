@@ -8,9 +8,10 @@ import (
 	"github.com/streadway/amqp"
 )
 
-type StockRequest struct {
-	Code   string `json:"code"`
-	RoomId string `json:"roomId"`
+type StockMessage struct {
+	HubName             string `json:"hubName"`
+	ClientRemoteAddress string `json:"clientRemoteAddress"`
+	Message             string `json:"message"`
 }
 
 const (
@@ -54,12 +55,12 @@ func failOnError(err error, msg string) {
 
 func ReceiveMessageDeliveryChannel() <-chan amqp.Delivery {
 	q, err := CHANNEL.QueueDeclare(
-		CLIENT_QUEUE_NAME, // name
-		false,             // durable
-		false,             // delete when unused
-		false,             // exclusive
-		false,             // no-wait
-		nil,               // arguments
+		STOOQ_QUEUE_NAME, // name
+		false,            // durable
+		false,            // delete when unused
+		false,            // exclusive
+		false,            // no-wait
+		nil,              // arguments
 	)
 	failOnError(err, "Failed to declare a queue")
 
@@ -77,14 +78,14 @@ func ReceiveMessageDeliveryChannel() <-chan amqp.Delivery {
 	return msgs
 }
 
-func SendMessage(message *StockRequest) {
+func SendMessage(message *StockMessage) {
 	q, err := CHANNEL.QueueDeclare(
-		STOOQ_QUEUE_NAME, // name
-		false,            // durable
-		false,            // delete when unused
-		false,            // exclusive
-		false,            // no-wait
-		nil,              // arguments
+		CLIENT_QUEUE_NAME, // name
+		false,             // durable
+		false,             // delete when unused
+		false,             // exclusive
+		false,             // no-wait
+		nil,               // arguments
 	)
 	failOnError(err, "Failed to declare a queue")
 

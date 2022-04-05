@@ -4,6 +4,7 @@ import (
 	"bot/core"
 	"bot/messaging"
 	"encoding/json"
+	"fmt"
 	"log"
 )
 
@@ -25,17 +26,17 @@ func main() {
 
 	go func() {
 		for d := range msgs {
-			var cm messaging.ClientMessage
+			var cm messaging.StockMessage
 			json.Unmarshal(d.Body, &cm)
 			message, err := core.GetStockQuote(cm.Message)
-			response := messaging.ClientMessage{HubName: cm.HubName, ClientRemoteAddress: cm.ClientRemoteAddress, Message: message}
+			fmt.Println(cm.Message)
+			stockMessage := &messaging.StockMessage{HubName: cm.HubName, ClientRemoteAddress: cm.ClientRemoteAddress, Message: message}
 			if err != nil {
 				log.Fatal(err)
 				return
 			}
 
-			clientMessage := &messaging.ClientMessage{HubName: response.HubName, ClientRemoteAddress: response.ClientRemoteAddress, Message: response.Message}
-			messaging.SendMessage(clientMessage)
+			messaging.SendMessage(stockMessage)
 		}
 	}()
 

@@ -9,6 +9,11 @@ import (
 	"strings"
 )
 
+type StockRequest struct {
+	Code   string `json:"code"`
+	RoomId string `json:"roomId"`
+}
+
 type StockResponse struct {
 	Symbol string `json:"symbol"`
 	Date   string `json:"date"`

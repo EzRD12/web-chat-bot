@@ -2,10 +2,13 @@ package pkg
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/ezrod12/chat/models"
 )
 
 var RoomsMessages map[string][]string
@@ -98,13 +101,17 @@ func (s *Server) Join(c *Client, argument string) {
 	c.hub = h
 	c.hub.register <- c
 
-	plainMsg := fmt.Sprintf("Someone joined the room %s", argument)
-
-	c.hub.broadcast <- []byte(plainMsg)
+	plainMsg := fmt.Sprintf("Someone joined the room")
+	message := models.Message{Value: plainMsg, Username: "robot"}
+	result, _ := json.Marshal(message)
+	c.hub.broadcast <- []byte(string(result))
 
 	hours, minutes, _ := time.Now().Clock()
 	msg := fmt.Sprintf("%d:%02d - %s", hours, minutes, plainMsg)
-	AddCurrentMessages(RoomsMessages, c.hub.name, msg)
+	message = models.Message{Value: msg, Username: "robot", Created: time.Now()}
+	result, _ = json.Marshal(message)
+
+	AddCurrentMessages(RoomsMessages, c.hub.name, string(result))
 }
 
 func (s *Server) QuitCurrentRoom(c *Client, arg string) {

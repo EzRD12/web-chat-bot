@@ -39,6 +39,8 @@
                 }
               }).done(function(res) {
                 localStorage.setItem('token', res.token)
+                localStorage.setItem('userId', res.userId)
+                localStorage.setItem('username', res.username)
                 window.location.href = "http://localhost:8080/home";
               });
           });

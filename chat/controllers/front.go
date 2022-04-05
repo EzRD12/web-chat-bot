@@ -2,14 +2,13 @@ package controllers
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/ezrod12/chat/messager"
 	"github.com/ezrod12/chat/models"
 	"github.com/ezrod12/chat/pkg"
-	"github.com/ezrod12/chat/services"
 	"github.com/ezrod12/chat/startup"
 )
 
@@ -25,18 +24,22 @@ func RegisterController(sv *pkg.Server) {
 
 	go func() {
 		for d := range msgs {
-			var response models.StockResponse
+			var response models.StockMessage
 			json.Unmarshal(d.Body, &response)
 
-			var message string = fmt.Sprintf("%s quote is: $%f \n per share", response.Code, response.Close)
-			var messageRequest models.Message = models.Message{Value: message, ChatRoomId: response.RoomId, SenderUserId: "bot"}
+			hubs := *sv.GetHubs()
+			hub := hubs[response.HubName]
 
-			services.AddMessage(messageRequest, rm.collection, rm.context)
+			message := &models.Message{Value: response.Message, Username: "system", Created: time.Now()}
+			result, _ := json.Marshal(message)
+
+			hub.SendTo(string(result), response.ClientRemoteAddress)
 		}
 	}()
 
 	http.Handle("/", loginForm)
 	http.Handle("/home", homeForm)
+	http.Handle("/signup", signUpForm)
 	http.Handle("/chat", chatForm)
 	http.Handle("/users", *uc)
 	http.Handle("/users/", *uc)
@@ -60,6 +63,12 @@ var loginForm = http.HandlerFunc(
 		}
 
 		http.ServeFile(w, r, "./templates/login.html")
+	})
+
+var signUpForm = http.HandlerFunc(
+	func(w http.ResponseWriter, r *http.Request) {
+
+		http.ServeFile(w, r, "./templates/signup.html")
 	})
 
 var homeForm = http.HandlerFunc(

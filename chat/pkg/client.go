@@ -2,11 +2,14 @@ package pkg
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
 	"sync"
 	"time"
 
+	"github.com/ezrod12/chat/messager"
+	"github.com/ezrod12/chat/models"
 	"github.com/gorilla/websocket"
 )
 
@@ -62,7 +65,7 @@ func (c *Client) readPump() {
 	c.conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	for {
-		_, message, err := c.conn.ReadMessage()
+		_, result, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("error: %v", err)
@@ -70,7 +73,13 @@ func (c *Client) readPump() {
 			break
 		}
 
-		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
+		result = bytes.TrimSpace(bytes.Replace(result, newline, space, -1))
+
+		messageRequest := models.Message{}
+
+		json.Unmarshal(result, &messageRequest)
+
+		message := result
 
 		paramsMap := GetParams(JoinPattern, string(message))
 		joinKey := "Join"
@@ -97,7 +106,7 @@ func (c *Client) readPump() {
 			continue
 		}
 
-		c.hub.broadcast <- message
+		c.hub.broadcast <- result
 
 		hours, minutes, _ := time.Now().Clock()
 		msg := fmt.Sprintf("%d:%02d - %s", hours, minutes, message)
@@ -147,15 +156,15 @@ func (c *Client) writePump() {
 				return
 			}
 
-			//paramsMap := GetParams(StockPattern, string(message))
-			//stockKey := "Stock"
+			paramsMap := GetParams(StockPattern, string(message))
+			stockKey := "Stock"
 			mapMutex.RLock()
-			// if v, ok := paramsMap[stockKey]; ok {
-			// 	mapMutex.RUnlock()
-			// 	message := models.StockRequest{HubName: c.hub.name, ClientRemoteAddress: c.conn.RemoteAddr().String(), Message: v}
-			// 	messager.SendMessage(&message)
-			// 	delete(paramsMap, stockKey)
-			// }
+			if v, ok := paramsMap[stockKey]; ok {
+				mapMutex.RUnlock()
+				message := models.StockMessage{HubName: c.hub.name, ClientRemoteAddress: c.conn.RemoteAddr().String(), Message: v}
+				messager.SendMessage(&message)
+				delete(paramsMap, stockKey)
+			}
 
 		case <-ticker.C:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))

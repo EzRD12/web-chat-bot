@@ -52,7 +52,7 @@ func AuthUser(response http.ResponseWriter, authRequest models.AuthenthicationRe
 	}
 
 	services.UpdateLastConnection(dbUser, collection, context)
-	response.Write([]byte(`{"token":"` + jwtToken + `"}`))
+	response.Write([]byte(`{"token":"` + jwtToken + `", "username": "` + dbUser.Username + `" , "userId": "` + dbUser.Id + `" }`))
 }
 
 func GenerateJWT(c *Claims) (string, error) {

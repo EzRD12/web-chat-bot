@@ -5,20 +5,15 @@ import (
 )
 
 type Message struct {
-	Id           string    `json:"id" bson:"id,omitempty" required:"true"`
-	Value        string    `required:"true" max:"160"`
-	ChatRoomId   string    `required:"true"`
-	SenderUserId string    `required:"true"`
-	Created      time.Time `required:"true"`
+	Id         string    `json:"id" bson:"id,omitempty" required:"true"`
+	Value      string    `required:"true" max:"160" json:"value" bson:"value"`
+	ChatRoomId string    `required:"true" json:"chatRoomId" bson:"chatRoomId"`
+	Username   string    `required:"true" json:"username"`
+	Created    time.Time `required:"true" json:"created" bson:"created"`
 }
 
-type StockRequest struct {
-	Code   string `json:"code"`
-	RoomId string `json:"roomId"`
-}
-
-type StockResponse struct {
-	Code   string  `json:"code"`
-	Close  float64 `json:"close"`
-	RoomId string  `json:"roomId"`
+type StockMessage struct {
+	HubName             string `json:"hubName"`
+	ClientRemoteAddress string `json:"clientRemoteAddress"`
+	Message             string `json:"message"`
 }

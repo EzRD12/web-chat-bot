@@ -3,6 +3,11 @@
 <head>
 <title>Chat</title>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.7.0/moment.min.js" type="text/javascript"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/js/bootstrap.bundle.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+
 <script type="text/javascript">
 window.onload = function () {
     var token = localStorage.getItem('token');
@@ -13,6 +18,25 @@ window.onload = function () {
     var conn;
     var msg = document.getElementById("msg");
     var log = document.getElementById("log");
+    var senderHtml = `<div class="media w-50 mb-3">
+            <h6 class="mb-0">#USERNAME</h6>
+            <div class="media-body ml-3">
+              <div class="bg-light rounded py-2 px-3 mb-2">
+                <p class="text-small mb-0 text-muted">#MESSAGE</p>
+              </div>
+              <p class="small text-muted">#DATE</p>
+            </div>
+          </div>`
+
+    var receiverHtml = `<div class="media w-50 ml-auto mb-3">
+            <div class="media-body">
+              <div class="bg-primary rounded py-2 px-3 mb-2">
+                <p style="color: white !important;" class="text-small mb-0 text-muted">#MESSAGE</p>
+              </div>
+              <p class="small text-muted">#DATE</p>
+            </div>
+            <h6 style="margin:10px" class="mb-0">#USERNAME</h6>
+          </div>`
 
     function appendLog(item) {
         var doScroll = log.scrollTop > log.scrollHeight - log.clientHeight - 1;
@@ -29,7 +53,10 @@ window.onload = function () {
         if (!msg.value) {
             return false;
         }
-        conn.send(msg.value);
+        var user = localStorage.getItem('username');
+        message = {value: msg.value, username: user}
+        result = JSON.stringify(message)
+        conn.send(result);
         msg.value = "";
         return false;
     };
@@ -57,13 +84,40 @@ window.onload = function () {
                         if(!messages) {
                             return
                         }
+                        messages = messages.sort(function (a, b) {
+                          if (moment(a).isAfter(b)) {
+                            return 1;
+                          }
+                          if (moment(b).isAfter(a)) {
+                            return -1;
+                          }
+                          // a must be equal to b
+                          return 0;
+                        })
                         for (var i = 0; i < messages.length; i++) {
                             var item = document.createElement("div");
-                            item.innerText = messages[i].Value;
+                            if (messages[i].username === 'system') {
+                              html = senderHtml.replace('#USERNAME', messages[i].username)
+                            } else {
+                              html = receiverHtml.replace('#USERNAME', messages[i].username)
+                            }
+                            html = html.replace('#MESSAGE', messages[i].value)
+                            html = html.replace('#DATE', moment(messages[i].created).fromNow())
+                            item.innerHTML = html;
                             appendLog(item);
                         }
                         log.removeChild(log.firstChild)
-                    });
+                    }).fail(function(err) {
+              if (err.status == 401) {
+                token = localStorage.getItem('token');
+
+                if (token) {
+                  localStorage.removeItem('token');
+                  alert("Your session has expired. Please login again.");
+                }
+                window.location.href = "http://localhost:8080/";
+              }
+            });
                 });
         }
         conn.onclose = function (evt) {
@@ -75,7 +129,18 @@ window.onload = function () {
             var messages = evt.data.split('\n');
             for (var i = 0; i < messages.length; i++) {
                 var item = document.createElement("div");
-                item.innerText = messages[i];
+                index = messages[i].indexOf("{");
+                console.log(messages[i])
+                messageResponse = JSON.parse(messages[i].slice(index, messages[i].length));
+
+                if (messageResponse.username === 'system' || messageResponse.username === 'robot') {
+                  html = senderHtml.replace('#USERNAME', messageResponse.username)
+                } else {
+                  html = receiverHtml.replace('#USERNAME', messageResponse.username)
+                }
+                html = html.replace('#MESSAGE', messageResponse.value)
+                html = html.replace('#DATE', moment(messageResponse.created).fromNow())
+                item.innerHTML = html;
                 appendLog(item);
             }
         };
@@ -87,54 +152,99 @@ window.onload = function () {
 };
 </script>
 <style type="text/css">
-html {
-    overflow: hidden;
-}
 
-body {
-    overflow: hidden;
-    padding: 0;
-    margin: 0;
-    width: 100%;
-    height: 100%;
-    background: gray;
-}
-
-#log {
-    background: white;
-    margin: 0;
-    padding: 0.5em 0.5em 0.5em 0.5em;
-    position: absolute;
-    top: 0.5em;
-    left: 0.5em;
-    right: 0.5em;
-    bottom: 3em;
-    overflow: auto;
-}
-
-#form {
-    padding: 0 0.5em 0 0.5em;
-    margin: 0;
-    position: absolute;
-    bottom: 1em;
-    left: 0px;
-    width: 100%;
-    overflow: hidden;
-}
-
-.exit {
-    float: right;
-    margin-right: 1;
-}
-
-</style>
+  body {
+    background-color: #74EBD5;
+    background-image: linear-gradient(90deg, #74EBD5 0%, #9FACE6 100%);
+  
+    min-height: 100vh;
+  }
+  
+  ::-webkit-scrollbar {
+    width: 5px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    width: 5px;
+    background: #f5f5f5;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    width: 1em;
+    background-color: #ddd;
+    outline: 1px solid slategrey;
+    border-radius: 1rem;
+  }
+  
+  .text-small {
+    font-size: 0.9rem;
+  }
+  
+  .messages-box,
+  .chat-box {
+    height: 510px;
+    overflow-y: scroll;
+  }
+  
+  .rounded-lg {
+    border-radius: 0.5rem;
+  }
+  
+  input::placeholder {
+    font-size: 0.9rem;
+    color: #999;
+  }
+  
+  
+      </style>
 </head>
 <body>
-<div id="log"></div>
-<form id="form">
-    <input type="submit" value="Send" />
-    <input type="text" id="msg" size="64" autofocus />
-    <input type="button" value="Exit" id="quit" style="float: right;margin-right: 1%;">
-</form>
+<div class="container py-5 px-4">
+    <div class="row rounded-lg overflow-hidden shadow">
+      <!-- Users box-->
+      <div class="col-5 px-0">
+        <div class="bg-white">
+  
+          <div class="bg-gray px-4 py-2 bg-light">
+            <p class="h5 mb-0 py-1">Recent</p>
+          </div>
+  
+          <div class="messages-box">
+            <div class="list-group rounded-0">
+              <a class="list-group-item list-group-item-action active text-white rounded-0">
+                <div class="media"><img src="https://bootstrapious.com/i/snippets/sn-chat/avatar.svg" alt="user" width="50" class="rounded-circle">
+                  <div class="media-body ml-4">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                      <h5 id="room" class="mb-0"></h5><small class="small font-weight-bold"></small>
+                    </div>
+                  </div>
+                </div>
+              </a>
+  
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Chat Box-->
+      <div class="col-7 px-0">
+        <div id="log"class="px-4 py-5 chat-box bg-white">
+  
+        </div>
+  
+        <!-- Typing area -->
+        <form id="form" class="bg-light">
+          <div class="input-group">
+            <input type="text" placeholder="Type a message" id="msg" aria-describedby="button-addon2" class="form-control rounded-0 border-0 py-4 bg-light">
+            <div class="input-group-append">
+              <button id="button-addon2" type="submit" class="btn btn-link"> <i class="fa fa-paper-plane"></i></button>
+              <input type="button" class="btn btn-link" value="Exit" id="quit" style="float: right;margin-right: 1%;">
+            </div>
+          </div>
+        </form>
+  
+      </div>
+    </div>
+  </div>
+  
 </body>
 </html>
