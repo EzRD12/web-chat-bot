@@ -5,8 +5,13 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
+)
+
+var (
+	Client HTTPClient
 )
 
 type StockRequest struct {
@@ -25,12 +30,21 @@ type StockResponse struct {
 	Volume string `json:"volume"`
 }
 
+// HTTPClient interface
+type HTTPClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
+func init() {
+	Client = &http.Client{}
+}
+
 func GetStockQuote(code string) (string, error) {
 	fmt.Println(code)
 	if code == "" {
 		return "", errors.New("invalid code")
 	}
-	data, err := readCSVFromUrl(messaging.STOCK_URL + code)
+	data, err := ReadCSVFromUrl(messaging.STOCK_URL + code)
 	if err != nil {
 		return "", errors.New("error parsing CSV from URL")
 	}
@@ -51,11 +65,21 @@ func GetStockQuote(code string) (string, error) {
 	return msg, nil
 }
 
-func readCSVFromUrl(url string) ([][]string, error) {
-	resp, err := http.Get(url)
-
+func ReadCSVFromUrl(url string) ([][]string, error) {
+	request, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
+	}
+
+	resp, err := Client.Do(request)
+
+	if err != nil {
+		log.Print(err)
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New("invalid response status code")
 	}
 
 	defer resp.Body.Close()
