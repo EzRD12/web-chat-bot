@@ -19,7 +19,7 @@
         <input type="password" id="password" name="password">
         <button type="submit">Sign up</button>
       </form>
-      <a href="http://localhost:8080/">Sign up</a>
+      <a href="http://localhost:8080/">Go back</a>
     </body>
     <script>
       $(document).ready(function(){
@@ -36,6 +36,9 @@
               }).done(function(res) {
                 alert("User created");
                 window.location.href = "http://localhost:8080/";
+              })
+              .fail(function(res) {
+                alert(res.responseJSON.error);
               });
           });
           $("#login").submit(function(e){
